@@ -10,15 +10,15 @@ import threading
 # 全局变量
 dropped_files = []
 OUTPUT_DIR = Path(__file__).parent / "output"
-output_to_dir_var = None  # 控制是否输出到output文件夹的开关
-is_processing = False
-progress_var = None
-channel_var = None
-log_text = None
-progress_label = None
-root = None
+output_to_dir_var = None  # 是否输出到output文件夹
+is_processing = False # 清空状态
+progress_var = None # 进度条
+channel_var = None # 声道选择
+log_text = None # 日志文本框
+progress_label = None # 进度文本
+root = None # 主窗口
 
-# -------------------------- 核心修复：健壮的拖放文件解析函数 --------------------------
+# -------------------------- 解析函数 --------------------------
 def parse_dropped_files(raw_data):
     """
     解析拖放的文件路径，兼容以下场景：
@@ -229,7 +229,7 @@ def on_process_click():
         log("⚠️ 正在处理中，请勿重复点击！")
         return
     is_processing = True
-    # 主线程直接获取声道值，无需sleep
+
     channels = channel_var.get() or "单声道"
     threading.Thread(target=batch_process, args=(channels,), daemon=True).start()
 
@@ -246,6 +246,7 @@ if __name__ == "__main__":
     root = TkinterDnD.Tk()
     root.title("素材处理工具（音频转OGG + 图片转PNG）")
     root.geometry("550x650")  # 放大窗口，方便看日志
+    root.minsize(550, 310)
 
     # 初始化tk相关全局变量
     progress_var = tk.DoubleVar()
@@ -272,30 +273,31 @@ if __name__ == "__main__":
     progress_bar.pack(fill=tk.X, expand=True, padx=5)
 
     # 拖放区域
-    drop_frame = ttk.Frame(root, padding="10", relief=tk.GROOVE)
-    drop_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+    drop_frame = ttk.Frame(root, padding="40", relief=tk.GROOVE)
+    drop_frame.pack(fill=tk.BOTH, expand=True, padx=30, pady=5)
     drop_frame.configure(height=200)  # 强制设置最小高度（比如300像素，可按需调整）
     drop_frame.pack_propagate(False)  # 禁止Frame随内容收缩，保留最小高度
     ttk.Label(
         drop_frame,
-        text="📌 批量拖入多个音频/图片文件到此处\n（支持多次拖放追加，路径含空格也可解析）",
-        font=("微软雅黑", 12)
+        text="📌 批量拖入多个音频/图片文件到此处\n（支持多次拖放追加）",
+        font=("微软雅黑", 15),
+        padding=20
     ).pack()
     # 延迟绑定DND事件，等窗口完全初始化
     def init_dnd():
         drop_frame.drop_target_register(DND_FILES)
         drop_frame.dnd_bind('<<Drop>>', on_drop)
-    root.after(200, init_dnd)  # 延迟200ms绑定
+    root.after(300, init_dnd)  # 延迟300ms绑定
 
     # 日志区域
     log_frame = ttk.Frame(root, padding="10")
-    log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+    log_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=5)
     ttk.Label(log_frame, text="处理日志（含拖放解析详情）：").pack(anchor=tk.W)
-    log_text = scrolledtext.ScrolledText(log_frame, state=tk.DISABLED, font=("Consolas", 9))
+    log_text = scrolledtext.ScrolledText(log_frame, state=tk.DISABLED, font=("Consolas", 10))
     log_text.pack(fill=tk.BOTH, expand=True)
 
     def safe_quit():
-        root.quit()  # 先退出主循环，再终止进程
+        root.quit()
         root.destroy()
         sys.exit(0)
         root.protocol("WM_DELETE_WINDOW", safe_quit)
