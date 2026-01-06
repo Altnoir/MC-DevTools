@@ -1,0 +1,11 @@
+# 纯Python依赖
+Pillow>=9.0.0
+tkinterdnd2>=0.3
+
+# 注意：ffmpeg 需手动安装（非Python包）：
+# Windows：下载ffmpeg并添加到系统PATH；
+# Linux：sudo apt install ffmpeg；
+# Mac：brew install ffmpeg
+
+# 安装命令：
+# pip install -r requirements.txt
