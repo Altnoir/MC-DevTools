@@ -1,3 +1,4 @@
+from site import setquit
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 from tkinterdnd2 import DND_FILES, TkinterDnD
@@ -244,7 +245,7 @@ def clear_files():
 # -------------------------- GUI初始化 --------------------------
 if __name__ == "__main__":
     root = TkinterDnD.Tk()
-    root.title("素材处理工具（音频转OGG + 图片转PNG）")
+    root.title("MC资源处理工具（音频转OGG + 图片转PNG）")
     root.geometry("550x650")  # 放大窗口，方便看日志
     root.minsize(550, 310)
 
@@ -283,11 +284,9 @@ if __name__ == "__main__":
         font=("微软雅黑", 15),
         padding=20
     ).pack()
-    # 延迟绑定DND事件，等窗口完全初始化
-    def init_dnd():
-        drop_frame.drop_target_register(DND_FILES)
-        drop_frame.dnd_bind('<<Drop>>', on_drop)
-    root.after(300, init_dnd)  # 延迟300ms绑定
+ 
+    drop_frame.drop_target_register(DND_FILES)
+    drop_frame.dnd_bind('<<Drop>>', on_drop)
 
     # 日志区域
     log_frame = ttk.Frame(root, padding="10")
@@ -297,8 +296,11 @@ if __name__ == "__main__":
     log_text.pack(fill=tk.BOTH, expand=True)
 
     def safe_quit():
+        global is_processing
+        is_processing = False  # 终止处理状态
         root.quit()
         root.destroy()
         sys.exit(0)
-        root.protocol("WM_DELETE_WINDOW", safe_quit)
+
+    root.protocol("WM_DELETE_WINDOW", safe_quit)
     root.mainloop()
