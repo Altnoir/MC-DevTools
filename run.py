@@ -10,6 +10,10 @@ import threading
 
 # 全局变量
 dropped_files = []
+
+FFMPEG_PATH = "ffmpeg"
+AUDIO_EXTS = {".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".wma"}
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp", ".gif"}
 OUTPUT_DIR = Path(__file__).parent / "output"
 output_to_dir_var = None  # 是否输出到output文件夹
 is_processing = False # 清空状态
@@ -64,8 +68,10 @@ def parse_dropped_files(raw_data):
     # 去重 + 过滤真实存在的文件
     valid_paths = []
     for path in list(set(file_paths)):
-        if path and Path(path).is_file():
-            valid_paths.append(path)
+        if path:
+            file  = Path(path).resolve()
+            if file.is_file():
+                valid_paths.append(str(file))
     return valid_paths
 
 # -------------------------- 工具函数 --------------------------
@@ -82,8 +88,10 @@ def get_output_file(original_file: Path, ext: str) -> Path:
 # -------------------------- 耗时处理函数 --------------------------
 def run_ffmpeg_safe(input_file: Path, output_file: Path, channels: str) -> tuple[bool, str]:
     ffmpeg_cmd = [
-        "ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(input_file),
-        "-ac", channels, "-c:a", "libvorbis", str(output_file), "-y"
+        FFMPEG_PATH,
+        "-hide_banner", "-loglevel", "error", "-i", str(input_file),
+        "-ac", channels, "-c:a", "libvorbis", str(output_file), 
+        "-y"
     ]
     try:
         result = subprocess.run(
@@ -104,10 +112,8 @@ def run_ffmpeg_safe(input_file: Path, output_file: Path, channels: str) -> tuple
 
 def process_single_file(file: Path, channels: str):
     suffix = file.suffix.lower()
-    audio_exts = [".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".wma"]
-    image_exts = [".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp", ".gif"]
-
-    if suffix in audio_exts:
+ 
+    if suffix in AUDIO_EXTS:
         output_file = get_output_file(file, ".ogg")
         success, err = run_ffmpeg_safe(file, output_file, "1" if channels == "单声道" else "2")
         if success:
@@ -118,14 +124,12 @@ def process_single_file(file: Path, channels: str):
                 log(f"✅ 音频转换成功，删原文件失败：{e}")
         else:
             log(f"❌ 音频处理失败：{file.name} - {err}")
-    elif suffix in image_exts:
+    elif suffix in IMAGE_EXTS:
         output_file = get_output_file(file, ".png")
         try:
             with Image.open(file) as img:
                 img_mode = "RGBA" if img.mode in ("RGBA", "LA") else "RGB"
-                img.convert(img_mode).save(
-                    output_file, format="PNG", optimize=True, compress_level=9, exif=None
-                )
+                img.convert(img_mode).save(output_file, format="PNG", optimize=True, compress_level=9, exif=None, icc_profile=None)
             try:
                 file.unlink()
                 log(f"✅ 图片处理完成：{file.name}")
@@ -163,16 +167,17 @@ def batch_process(channels):
             log("⚠️ 无文件可处理！")
             is_processing = False
             return
-
+        
+        output_dir = ensure_output_dir()
         log("\n========== 开始处理 ==========")
-        log(f"📁 输出目录：{ensure_output_dir().absolute()}")
+        log(f"📁 输出目录：{output_dir.absolute()}")
         update_progress(0, total_files)
 
         # 遍历处理
         for idx, file in enumerate(dropped_files, 1):
             if not is_processing:
                 break
-            process_single_file(file, channels)
+            process_single_file(Path(file), channels)
             update_progress(idx, total_files)
 
         # 处理完成
@@ -245,9 +250,10 @@ def clear_files():
 # -------------------------- GUI初始化 --------------------------
 if __name__ == "__main__":
     root = TkinterDnD.Tk()
+
     root.title("MC资源处理工具（音频转OGG + 图片转PNG）")
-    root.geometry("550x650")  # 放大窗口，方便看日志
-    root.minsize(550, 310)
+    root.geometry("510x650")  # 放大窗口
+    root.minsize(510, 310)
 
     # 初始化tk相关全局变量
     progress_var = tk.DoubleVar()
@@ -300,7 +306,6 @@ if __name__ == "__main__":
         is_processing = False  # 终止处理状态
         root.quit()
         root.destroy()
-        sys.exit(0)
 
     root.protocol("WM_DELETE_WINDOW", safe_quit)
     root.mainloop()

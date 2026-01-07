@@ -8,11 +8,7 @@ tkinterdnd2>=0.3
 # Mac：brew install ffmpeg
 
 # 安装命令：
-<<<<<<< HEAD
-# pip install -r requirements.txt
-=======
 # pip install -r requirements.txt
 
 # 打包命令示例（需先安装PyInstaller）：
 # python -m PyInstaller --onefile --windowed --hidden-import=tkinterdnd2 --name MC资源处理工具 --icon=icon.ico .\run.py
->>>>>>> 19cb6e6 (Release-0.1)
